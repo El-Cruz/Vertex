@@ -1,7 +1,9 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.awt.*;
 
 public class Ventana extends JFrame {
     private JTabbedPane tabbedPane1;
@@ -23,6 +25,7 @@ public class Ventana extends JFrame {
     private JLabel lblSubTotal;
     private JLabel lblIva;
     private JLabel lblTotalPagar;
+    private JButton EDITARButton;
 
     private ListaProductos inventario;
     private PilaCarrito carrito;
@@ -54,6 +57,39 @@ public class Ventana extends JFrame {
             }
         };
         table1.setModel(modeloInventario);
+
+        table1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                try {
+                    int stock = Integer.parseInt(table.getValueAt(row, 2).toString());
+
+                    if (stock < 5) {
+                        c.setBackground(new Color(255, 200, 200));
+                        c.setForeground(Color.BLACK);
+                    } else {
+
+                        c.setBackground(Color.WHITE);
+                        c.setForeground(Color.BLACK);
+                    }
+                } catch (Exception e) {
+
+                    c.setBackground(Color.WHITE);
+                    c.setForeground(Color.BLACK);
+                }
+
+                if (isSelected) {
+                    c.setBackground(table.getSelectionBackground());
+                    c.setForeground(table.getSelectionForeground());
+                }
+
+                return c;
+            }
+        });
 
         comboBox1.removeAllItems();
         comboBox1.addItem("Todos");
@@ -103,6 +139,7 @@ public class Ventana extends JFrame {
         NUEVOPRODUCTOButton.addActionListener(e -> crearNuevoProducto());
         ACTUALIZARSTOCKButton.addActionListener(e -> actualizarStockSeleccionado());
         ELIMINARButton.addActionListener(e -> eliminarProductoSeleccionado());
+        EDITARButton.addActionListener(e -> editarProductoSeleccionado());
 
         AGREGARALCARRITOButton.addActionListener(e -> agregarProductoAlCarrito());
         CANCELARButton.addActionListener(e -> deshacerUltimoDelCarrito());
@@ -158,10 +195,17 @@ public class Ventana extends JFrame {
             String stockStr = JOptionPane.showInputDialog(this, "Stock inicial:", "1");
             if (stockStr == null) return;
             stock = Integer.parseInt(stockStr);
-
+            if (stock < 0) {
+                JOptionPane.showMessageDialog(this, "El stock no puede ser negativo.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             String precioStr = JOptionPane.showInputDialog(this, "Precio unitario:", "0");
             if (precioStr == null) return;
             precio = Double.parseDouble(precioStr);
+            if (precio < 0) {
+                JOptionPane.showMessageDialog(this, "El precio no puede ser negativo.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Valores numéricos inválidos.",
                     "Error", JOptionPane.ERROR_MESSAGE);
@@ -188,12 +232,66 @@ public class Ventana extends JFrame {
                     this, "Nuevo stock:", p.getStock());
             if (nuevoStockStr == null) return;
             int nuevoStock = Integer.parseInt(nuevoStockStr);
+            if (nuevoStock < 0) {
+                JOptionPane.showMessageDialog(this, "El stock no puede ser negativo.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             p.setStock(nuevoStock);
             refrescarTablaInventario();
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Valor de stock inválido.",
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void editarProductoSeleccionado() {
+        int fila = table1.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un producto para editar.");
+            return;
+        }
+
+        String nombreActual = (String) modeloInventario.getValueAt(fila, 0);
+        Producto p = inventario.buscarPorNombre(nombreActual);
+        if (p == null) return;
+
+        String nuevoNombre = JOptionPane.showInputDialog(this, "Editar Nombre:", p.getNombre());
+        if (nuevoNombre == null || nuevoNombre.isBlank()) return;
+
+        double nuevoPrecio;
+        try {
+            String precioStr = JOptionPane.showInputDialog(this, "Editar Precio:", p.getPrecio());
+            if (precioStr == null) return;
+            nuevoPrecio = Double.parseDouble(precioStr);
+            if (nuevoPrecio < 0) {
+                JOptionPane.showMessageDialog(this, "El precio no puede ser negativo.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Precio inválido.");
+            return;
+        }
+
+        int nuevoStock;
+        try {
+            String stockStr = JOptionPane.showInputDialog(this, "Editar Stock:", p.getStock());
+            if (stockStr == null) return;
+            nuevoStock = Integer.parseInt(stockStr);
+            if (nuevoStock < 0) {
+                JOptionPane.showMessageDialog(this, "El stock no puede ser negativo.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Stock inválido.");
+            return;
+        }
+
+        p.setNombre(nuevoNombre);
+        p.setPrecio(nuevoPrecio);
+        p.setStock(nuevoStock);
+
+        refrescarTablaInventario();
+        JOptionPane.showMessageDialog(this, "Producto actualizado correctamente.");
     }
 
     private void eliminarProductoSeleccionado() {

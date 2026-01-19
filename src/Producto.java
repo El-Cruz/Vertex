@@ -31,6 +31,14 @@ public class Producto {
         return precio;
     }
 
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public void setPrecio(double precio) {
+        this.precio = precio;
+    }
+
     @Override
     public String toString() {
         // Se usa para mostrar en la JList del carrito
